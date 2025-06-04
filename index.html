@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPhone 13 Calculator Simulation</title>
+    <!-- Tailwind CSS CDN for basic utilities -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Import Inter font from Google Fonts for a professional look */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        /* CSS Variables for easier theming and consistency */
+        :root {
+            --function-btn-bg: #a6a6a6;
+            --number-btn-bg: #333333;
+            --operator-btn-bg: #ff9500;
+            --operator-btn-active-bg: #ffffff; /* White for active operator */
+            --operator-btn-active-color: #ff9500; /* Orange text for active operator */
+        }
+
+        /* Custom styles for iPhone frame, notch, home bar, and calculator */
+        body {
+            font-family: 'Inter', sans-serif; /* Using Inter as per instructions */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            /* Updated background for the body - a subtle, modern pattern */
+            background-color: #e0f2f7; /* Base light background */
+            background-image: repeating-linear-gradient(
+                45deg,
+                rgba(255, 255, 255, 0.05) 0px,
+                rgba(255, 255, 255, 0.05) 2px,
+                transparent 2px,
+                transparent 4px
+            ),
+            linear-gradient(135deg, #a8c0ff, #3f2b96); /* A deeper, more engaging gradient */
+            overflow: hidden; /* Prevent scrollbars */
+            margin: 0; /* Remove default body margin */
+            -webkit-user-select: none; /* Prevent text selection for WebKit browsers */
+            -moz-user-select: none;    /* Prevent text selection for Firefox */
+            -ms-user-select: none;     /* Prevent text selection for IE/Edge */
+            user-select: none;         /* Standard property to prevent text selection */
+            -webkit-touch-callout: none; /* Disable callout on long press for iOS */
+        }
+
+        /* iPhone Frame */
+        .iphone-frame {
+            position: relative;
+            width: 90vw; /* Responsive width, takes 90% of viewport width */
+            height: 90vh; /* Responsive height, takes 90% of viewport height */
+            max-width: 390px; /* Updated max width for iPhone 13 logical pixels */
+            max-height: 800px; /* Updated max height for iPhone 13 logical pixels (reduced) */
+            aspect-ratio: 390 / 844; /* Maintain iPhone 13 aspect ratio */
+            background-color: #1a1a1a; /* Dark frame color */
+            border-radius: 48px; /* Slightly more rounded for outer frame */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), /* Large shadow */
+                        inset 0 0 0 10px rgba(255, 255, 255, 0.1); /* Inner bezel effect */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; /* Keep screen content within frame */
+            transition: all 0.5s ease-in-out;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* iPhone Screen */
+        .iphone-screen {
+            position: relative;
+            width: calc(100% - 20px); /* Screen slightly smaller than frame */
+            height: calc(100% - 20px);
+            background: linear-gradient(to bottom, #7f7fd5, #86a8e7, #91eac2); /* iOS-like gradient, fallback */
+            border-radius: 38px; /* Slightly more rounded for inner screen */
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.5s ease-in-out;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* Notch */
+        .notch {
+            position: absolute;
+            top: 0px; /* Position at the very top of the screen */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px; /* Typical iPhone notch width */
+            height: 30px; /* Typical iPhone notch height */
+            background-color: #1a1a1a; /* Matches frame color */
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+            z-index: 10; /* Ensure it's above screen content */
+        }
+
+        /* Status Bar */
+        .status-bar {
+            position: absolute;
+            top: 15px; /* Position below the very top edge of the screen */
+            left: 0;
+            width: 100%;
+            height: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 25px; /* Padding from screen edges */
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 11; /* Above notch */
+            pointer-events: none; /* Allow clicks to pass through to elements below */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .status-bar .battery {
+            display: flex;
+            align-items: center;
+            margin-left: auto; /* Push battery to the right */
+            padding-right: 2px; /* Fine-tuned padding to move it slightly left */
+        }
+
+        .status-bar .battery-icon {
+            width: 20px;
+            height: 10px;
+            border: 1px solid white;
+            border-radius: 2px;
+            position: relative;
+            margin-left: 5px;
+        }
+
+        .status-bar .battery-level {
+            height: 100%;
+            width: 50%; /* Half-filled battery */
+            background-color: white;
+            border-radius: 1px;
+        }
+
+        .status-bar .battery-icon::after {
+            content: '';
+            position: absolute;
+            right: -3px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2px;
+            height: 4px;
+            background-color: white;
+            border-radius: 0 1px 1px 0;
+        }
+
+        /* Home Bar */
+        .home-bar {
+            position: absolute;
+            bottom: 10px; /* Position at the bottom of the screen */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 130px; /* Standard home bar width */
+            height: 5px; /* Standard home bar height */
+            background-color: rgba(255, 255, 255, 0.3); /* Translucent white */
+            border-radius: 5px;
+            z-index: 10;
+            cursor: pointer; /* Indicate it's clickable */
+        }
+
+        .home-bar:active {
+            background-color: rgba(255, 255, 255, 0.5); /* Visual feedback on tap */
+        }
+
+        /* Home Screen */
+        .home-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-wrap: wrap; /* Allows widgets to wrap */
+            align-content: flex-start; /* Align content to the start */
+            padding: 40px 20px; /* Padding for widgets and content */
+            padding-bottom: 140px; /* Adjusted space for icon above home bar (90px icon height + 50px bottom offset) */
+            background-image: url('https://r1.ilikewallpaper.net/iphone-12-pro-max-wallpapers/download-146678/iPhone-13-Blue-Light.jpg'); /* Placeholder: Replace with your wallpaper image URL */
+            background-size: cover; /* Cover the entire screen */
+            background-position: center; /* Center the image */
+            background-repeat: no-repeat; /* Do not repeat the image */
+            transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+            z-index: 5;
+            gap: 30px; /* Increased gap between widgets */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .home-screen.hidden {
+            transform: translateY(100%); /* Slide down out of view */
+            opacity: 0;
+            pointer-events: none; /* Disable interactions when hidden */
+        }
+
+        /* App Icon (general styles) */
+        .app-icon {
+            width: 70px; /* Increased width */
+            height: 90px; /* Increased height */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start; /* Align content to top */
+            align-items: center;
+            padding-top: 5px; /* Small padding at top for the icon */
+            color: white;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: transform 0.1s ease-in-out;
+            /* Positioning for calculator icon specifically */
+            position: absolute;
+            bottom: 50px; /* 10px (home bar height) + 40px (gap) */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 7; /* Ensure it's above other home screen elements if they overlap */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .app-icon:active {
+            transform: translateX(-50%) scale(0.95); /* Scale while maintaining center */
+        }
+
+        .app-icon img {
+            width: 60px; /* Increased image size within the icon container */
+            height: 60px; /* Increased image size within the icon container */
+            object-fit: contain; /* Ensure the image fits without cropping */
+            border-radius: 12px; /* Slightly smaller border-radius for the image itself */
+            margin-bottom: 3px; /* Space between image and label */
+        }
+
+        .app-icon-label {
+            font-size: 11px; /* Slightly increased font size */
+            color: white;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Widget Styles */
+        .widget {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: white;
+            padding: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            cursor: pointer; /* Indicate widgets are interactive */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .widget-small {
+            width: calc(50% - 15px); /* Two widgets per row with gap */
+            height: 120px;
+        }
+
+        .widget-medium {
+            width: calc(100% - 10px); /* One widget per row */
+            height: 120px;
+        }
+
+        .widget-large {
+            width: calc(100% - 10px);
+            height: 250px;
+        }
+
+        .widget-header {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+
+        .widget-content {
+            font-size: 18px;
+            font-weight: 500;
+            flex-grow: 1; /* Allows content to take available space */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .widget-footer {
+            font-size: 12px;
+            opacity: 0.7;
+            text-align: right;
+        }
+
+
+        /* Calculator App */
+        .calculator-app {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000; /* Dark background for calculator */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; /* Align content to bottom */
+            padding: 20px;
+            box-sizing: border-box;
+            transform: translateY(100%); /* Start off-screen (bottom) */
+            opacity: 0;
+            transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+            z-index: 6; /* Above home screen */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .calculator-app.active {
+            transform: translateY(0); /* Slide up into view */
+            opacity: 1;
+        }
+
+        /* Calculator Display Container */
+        .calculator-display-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: flex-end;
+            padding: 10px 0;
+            min-height: 100px; /* Ensure enough space for both lines */
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .calculator-previous-display {
+            color: rgba(255, 255, 255, 0.7); /* Lighter color for previous operation */
+            font-size: 30px; /* Smaller font size for previous operation */
+            text-align: right;
+            line-height: 1;
+            height: 30px; /* Fixed height to prevent shifting */
+            overflow: hidden;
+            text-overflow: clip;
+            margin-bottom: 5px; /* Space between previous and current display */
+            font-weight: 300;
+        }
+
+        .calculator-current-display {
+            color: white;
+            font-size: 90px;
+            text-align: right;
+            line-height: 1;
+            overflow: hidden;
+            text-overflow: clip;
+            font-weight: 300;
+        }
+
+        /* Responsive adjustments for calculator display */
+        @media (max-width: 400px) {
+            .calculator-current-display {
+                font-size: 60px; /* Smaller font on tiny screens */
+            }
+            .calculator-previous-display {
+                font-size: 24px; /* Adjust previous display font size for smaller screens */
+            }
+        }
+
+        .calculator-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .calc-button {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%; /* Circular buttons */
+            font-size: 30px;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none; /* Prevent text selection */
+            transition: background-color 0.1s ease-in-out, transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            font-weight: 500; /* Medium font weight for buttons */
+        }
+
+        .calc-button:active {
+            transform: scale(0.95);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3); /* Inset shadow on press */
+        }
+
+        /* Focus styles for accessibility */
+        .calc-button:focus, .home-bar:focus, .app-icon:focus {
+            outline: 2px solid #ff9500; /* Orange outline for visibility */
+            outline-offset: 2px;
+        }
+
+        /* Responsive adjustments for calculator buttons */
+        @media (max-width: 400px) {
+            .calc-button {
+                width: 65px; /* Slightly larger for better touch target */
+                height: 65px;
+                font-size: 28px; /* Slightly larger font */
+            }
+            /* Adjust zero button for the new layout */
+            .calc-button.zero {
+                width: 100%; /* Take full width of its two columns */
+                border-radius: 32.5px; /* Half-circle for zero button based on new height */
+                justify-content: flex-start; /* Align content to left */
+                padding-left: 15px; /* Padding for alignment */
+            }
+        }
+
+        /* Button Colors (iOS Calculator style) */
+        .calc-button.function {
+            background-color: var(--function-btn-bg);
+            color: black;
+            background-image: linear-gradient(to bottom right, rgba(255,255,255,0.2), rgba(0,0,0,0.05));
+        }
+
+        .calc-button.number {
+            background-color: var(--number-btn-bg);
+            background-image: linear-gradient(to bottom right, rgba(255,255,255,0.1), rgba(0,0,0,0.1));
+        }
+
+        .calc-button.operator {
+            background-color: var(--operator-btn-bg);
+            background-image: linear-gradient(to bottom right, rgba(255,255,255,0.2), rgba(0,0,0,0.1));
+        }
+
+        /* Active operator style */
+        .calc-button.operator.active {
+            background-color: var(--operator-btn-active-bg);
+            color: var(--operator-btn-active-color);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3); /* Keep inset shadow on active */
+        }
+
+        /* Calculator Header (now just for spacing, no close button) */
+        .calculator-header {
+            height: 40px; /* Space for the notch area */
+            padding-top: 30px; /* Push content down below notch */
+            position: relative;
+        }
+
+        /* iPhone Frame Buttons (Volume and Power) */
+        .side-button {
+            position: absolute;
+            background-color: #333; /* Dark gray for buttons */
+            border-radius: 2px;
+            z-index: 1; /* Below the screen */
+        }
+
+        .volume-up {
+            left: -3px;
+            top: 120px;
+            width: 3px;
+            height: 30px;
+        }
+
+        .volume-down {
+            left: -3px;
+            top: 160px;
+            width: 3px;
+            height: 30px;
+        }
+
+        .power-button {
+            right: -3px;
+            top: 200px;
+            width: 3px;
+            height: 60px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="iphone-frame">
+        <!-- Side Buttons for realism -->
+        <div class="side-button volume-up"></div>
+        <div class="side-button volume-down"></div>
+        <div class="side-button power-button"></div>
+
+        <div class="iphone-screen">
+            <div class="notch"></div>
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <span class="time" id="currentTime">9:41 AM</span>
+                <div class="battery">
+                    <div class="battery-icon">
+                        <div class="battery-level"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="home-bar" id="homeBarElement" role="button" aria-label="Go to Home Screen" tabindex="0"></div>
+
+            <!-- Home Screen -->
+            <div class="home-screen" id="homeScreen">
+                <!-- Widgets -->
+                <div class="widget widget-medium" id="weatherWidget">
+                    <div class="widget-header">Weather</div>
+                    <div class="widget-content" id="weatherContent">☀️ 25°C</div>
+                    <div class="widget-footer">Dehradun</div>
+                </div>
+                <div class="widget widget-small" id="stocksWidget">
+                    <div class="widget-header">Stocks</div>
+                    <div class="widget-content" id="stocksContent">$+120.50</div>
+                    <div class="widget-footer">AAPL</div>
+                </div>
+                <div class="widget widget-small" id="screenTimeWidget">
+                    <div class="widget-header">Screen Time</div>
+                    <div class="widget-content" id="screenTimeContent">3h 45m</div>
+                    <div class="widget-footer">Today</div>
+                </div>
+                <!-- Calculator App Icon - positioned absolutely at the bottom -->
+                <div class="app-icon" id="calculatorIcon" role="button" aria-label="Calculator App" tabindex="0">
+                    <!-- Calculator icon image -->
+                    <img src="https://cdn.jim-nielsen.com/ios/512/calculator-2017-10-10.png?rf=1024" alt="Calculator Icon" onerror="this.onerror=null;this.src='https://placehold.co/60x60/CCCCCC/000000?text=Error';" />
+                    <span class="app-icon-label">Calculator</span>
+                </div>
+                <!-- Other app icons would go here -->
+            </div>
+
+            <!-- Calculator App -->
+            <div class="calculator-app" id="calculatorApp">
+                <div class="calculator-header">
+                    <!-- Close button removed as per user request -->
+                </div>
+                <div class="calculator-display-container">
+                    <div class="calculator-previous-display" id="previousDisplay"></div>
+                    <div class="calculator-current-display" id="display">0</div>
+                </div>
+                <div class="calculator-buttons">
+                    <button class="calc-button function" data-action="clear" aria-label="Clear" tabindex="0">AC</button>
+                    <button class="calc-button function" data-action="sign" aria-label="Change Sign" tabindex="0">+/-</button>
+                    <button class="calc-button function" data-action="percent" aria-label="Percent" tabindex="0">%</button>
+                    <button class="calc-button operator" data-action="divide" aria-label="Divide" tabindex="0">÷</button>
+
+                    <button class="calc-button number" aria-label="Seven" tabindex="0">7</button>
+                    <button class="calc-button number" aria-label="Eight" tabindex="0">8</button>
+                    <button class="calc-button number" aria-label="Nine" tabindex="0">9</button>
+                    <button class="calc-button operator" data-action="multiply" aria-label="Multiply" tabindex="0">×</button>
+
+                    <button class="calc-button number" aria-label="Four" tabindex="0">4</button>
+                    <button class="calc-button number" aria-label="Five" tabindex="0">5</button>
+                    <button class="calc-button number" aria-label="Six" tabindex="0">6</button>
+                    <button class="calc-button operator" data-action="subtract" aria-label="Subtract" tabindex="0">−</button>
+
+                    <button class="calc-button number" aria-label="One" tabindex="0">1</button>
+                    <button class="calc-button number" aria-label="Two" tabindex="0">2</button>
+                    <button class="calc-button number" aria-label="Three" tabindex="0">3</button>
+                    <button class="calc-button operator" data-action="add" aria-label="Add" tabindex="0">+</button>
+
+                    <!-- Portfolio button with 'A' icon -->
+                    <button class="calc-button function" data-action="portfolio" aria-label="View Portfolio" tabindex="0">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <text x="50%" y="70%" font-family="Inter, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="currentColor">A</text>
+                        </svg>
+                    </button>
+                    <button class="calc-button number zero" aria-label="Zero" tabindex="0">0</button>
+                    <button class="calc-button number" data-action="decimal" aria-label="Decimal Point" tabindex="0">.</button>
+                    <button class="calc-button operator" data-action="equals" aria-label="Equals" tabindex="0">=</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript for app transitions and calculator logic
+
+        const calculatorIcon = document.getElementById('calculatorIcon');
+        const homeScreen = document.getElementById('homeScreen');
+        const calculatorApp = document.getElementById('calculatorApp');
+        const homeBarElement = document.getElementById('homeBarElement'); // Get the home bar element
+        const currentDisplay = document.getElementById('display'); // Renamed for clarity
+        const previousDisplay = document.getElementById('previousDisplay'); // New element for previous display
+        const calculatorButtons = document.querySelector('.calculator-buttons');
+        const currentTimeElement = document.getElementById('currentTime');
+
+        // Widget elements
+        const weatherWidget = document.getElementById('weatherWidget');
+        const weatherContent = document.getElementById('weatherContent');
+        const stocksWidget = document.getElementById('stocksWidget');
+        const stocksContent = document.getElementById('stocksContent');
+        const screenTimeWidget = document.getElementById('screenTimeWidget');
+        const screenTimeContent = document.getElementById('screenTimeContent');
+
+        let currentInput = '0';
+        let previousInput = '';
+        let operation = null;
+        let resetDisplay = false; // Flag to clear display after an operation or equals
+
+        // Helper function to get operator symbol for display
+        function getOperatorSymbol(op) {
+            switch (op) {
+                case 'add': return '+';
+                case 'subtract': return '-';
+                case 'multiply': return '×';
+                case 'divide': return '÷';
+                default: return '';
+            }
+        }
+
+        // Function to update the calculator display and AC button text
+        function updateDisplay() {
+            currentDisplay.textContent = currentInput;
+            // Adjust font size if number is too long
+            if (currentInput.length > 9) {
+                currentDisplay.style.fontSize = '45px';
+            } else if (currentInput.length > 6) {
+                currentDisplay.style.fontSize = '60px';
+            } else {
+                currentDisplay.style.fontSize = '90px';
+            }
+
+            // Update AC button text based on calculator state
+            const acButton = document.querySelector('.calc-button[data-action="clear"]');
+            if (acButton) {
+                if (currentInput !== '0' || previousInput !== '' || operation !== null) {
+                    acButton.textContent = 'C'; // Clear current entry
+                } else {
+                    acButton.textContent = 'AC'; // All Clear
+                }
+            }
+        }
+
+        // Function to update the current time in the status bar
+        function updateTime() {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = now.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // The hour '0' should be '12'
+            const minutesPadded = minutes < 10 ? '0' + minutes : minutes;
+            currentTimeElement.textContent = `${hours}:${minutesPadded} ${ampm}`;
+        }
+
+        // Call updateTime initially and then every minute
+        updateTime();
+        setInterval(updateTime, 60000); // Update every minute
+
+        // Widget functionality
+        let weatherState = 0; // 0 for sunny, 1 for cloudy
+        weatherWidget.addEventListener('click', () => {
+            if (weatherState === 0) {
+                weatherContent.textContent = '☁️ 18°C';
+                weatherState = 1;
+            } else {
+                weatherContent.textContent = '☀️ 25°C';
+                weatherState = 0;
+            }
+        });
+
+        const stocksValues = ['$+120.50', '$-5.25', '$+300.00', '$-15.75'];
+        let stocksIndex = 0;
+        stocksWidget.addEventListener('click', () => {
+            stocksIndex = (stocksIndex + 1) % stocksValues.length;
+            stocksContent.textContent = stocksValues[stocksIndex];
+        });
+
+        const screenTimeValues = ['3h 45m', '5h 10m', '2h 30m', '4h 05m'];
+        let screenTimeIndex = 0;
+        screenTimeWidget.addEventListener('click', () => {
+            screenTimeIndex = (screenTimeIndex + 1) % screenTimeValues.length;
+            screenTimeContent.textContent = screenTimeValues[screenTimeIndex];
+        });
+
+
+        // Handle number button clicks
+        function appendNumber(number) {
+            // If in 'Error' state, clear it and start fresh
+            if (currentInput === 'Error') {
+                clearCalculator();
+            }
+
+            if (currentInput === '0' || resetDisplay) {
+                currentInput = number;
+                resetDisplay = false;
+            } else {
+                currentInput += number;
+            }
+            removeActiveOperatorHighlight(); // Remove operator highlight when a number is pressed
+            updateDisplay();
+        }
+
+        // Handle decimal button click
+        function appendDecimal() {
+            // If in 'Error' state, clear it and start with '0.'
+            if (currentInput === 'Error') {
+                clearCalculator();
+                currentInput = '0.';
+                resetDisplay = false;
+                updateDisplay();
+                return;
+            }
+
+            if (resetDisplay) {
+                currentInput = '0.';
+                resetDisplay = false;
+            } else if (!currentInput.includes('.')) {
+                currentInput += '.';
+            }
+            removeActiveOperatorHighlight(); // Remove operator highlight when decimal is pressed
+            updateDisplay();
+        }
+
+        // Function to remove active operator highlight
+        function removeActiveOperatorHighlight() {
+            const activeOperator = document.querySelector('.calc-button.operator.active');
+            if (activeOperator) {
+                activeOperator.classList.remove('active');
+            }
+        }
+
+        // Handle operation button clicks (+, -, ×, ÷)
+        function chooseOperation(op) {
+            // Prevent operation if in 'Error' state
+            if (currentInput === 'Error') return;
+
+            if (currentInput === '') return; // Do nothing if current input is empty
+
+            if (previousInput !== '' && operation !== null && !resetDisplay) {
+                // If there's a pending operation and a new number has been entered, compute it first
+                compute();
+            }
+
+            operation = op;
+            previousInput = currentInput;
+            resetDisplay = true;
+
+            // Update previous display to show the first operand and the chosen operator
+            previousDisplay.textContent = previousInput + ' ' + getOperatorSymbol(operation);
+
+            // Add active class to the current operator button
+            removeActiveOperatorHighlight(); // Remove any existing highlight
+            const currentOperatorButton = document.querySelector(`.calc-button.operator[data-action="${op}"]`);
+            if (currentOperatorButton) {
+                currentOperatorButton.classList.add('active');
+            }
+        }
+
+        // Perform the calculation
+        function compute() {
+            let computation;
+            const prev = parseFloat(previousInput);
+            const current = parseFloat(currentInput);
+
+            // If equals is pressed without a pending operation or enough operands, do nothing
+            if (isNaN(prev) || isNaN(current) || operation === null) {
+                removeActiveOperatorHighlight();
+                resetDisplay = true;
+                return;
+            }
+
+            // Error handling for division by zero
+            if (operation === 'divide' && current === 0) {
+                currentInput = 'Error';
+                operation = null;
+                previousInput = '';
+                resetDisplay = true;
+                updateDisplay();
+                previousDisplay.textContent = ''; // Clear previous display on error
+                removeActiveOperatorHighlight(); // Ensure highlight is removed on error
+                return;
+            }
+
+            switch (operation) {
+                case 'add':
+                    computation = prev + current;
+                    break;
+                case 'subtract':
+                    computation = prev - current;
+                    break;
+                case 'multiply':
+                    computation = prev * current;
+                    break;
+                case 'divide':
+                    computation = prev / current;
+                    break;
+                default:
+                    return; // Should not happen if operation is not null
+            }
+
+            // Update previous display with the full expression and equals sign
+            previousDisplay.textContent = previousInput + ' ' + getOperatorSymbol(operation) + ' ' + current + ' =';
+
+            // Handle floating-point precision issues by rounding to 4 decimal places
+            currentInput = parseFloat(computation.toFixed(4)).toString(); // Changed to toFixed(4)
+            operation = undefined;
+            previousInput = '';
+            resetDisplay = true;
+            removeActiveOperatorHighlight(); // Remove highlight after computation
+            updateDisplay();
+        }
+
+        // Handle clear (AC/C) button
+        function clearCalculator() {
+            if (currentInput === 'Error' || (currentInput !== '0' && !resetDisplay)) {
+                // If in error state or there's a current input (C functionality)
+                currentInput = '0';
+            } else {
+                // If currentInput is '0' (or display was reset) and there's a pending operation/previous input (AC functionality)
+                currentInput = '0';
+                previousInput = '';
+                operation = null;
+            }
+            resetDisplay = false; // Ensure display is not reset after a 'C' press
+            previousDisplay.textContent = ''; // Always clear previous display on clear
+            removeActiveOperatorHighlight(); // Always remove highlight on clear
+            updateDisplay();
+        }
+
+        // Handle sign change (+/-)
+        function changeSign() {
+            if (currentInput === 'Error') return;
+            currentInput = (parseFloat(currentInput) * -1).toString();
+            updateDisplay();
+        }
+
+        // Handle percentage
+        function applyPercent() {
+            if (currentInput === 'Error') return;
+            currentInput = (parseFloat(currentInput) / 100).toString();
+            updateDisplay();
+        }
+
+        // Handle portfolio button click
+        function redirectToPortfolio() {
+            console.log("Redirecting to portfolio...");
+            // In a real application, you would use window.open('your-portfolio-url.com', '_blank');
+            // For this simulation, we'll just log to the console.
+        }
+
+        // Event listener for all calculator buttons
+        calculatorButtons.addEventListener('click', e => {
+            const button = e.target;
+            // Ensure we only react to clicks on the actual button, not its children
+            if (!button.classList.contains('calc-button') && !button.closest('.calc-button')) return;
+
+            const targetButton = button.classList.contains('calc-button') ? button : button.closest('.calc-button');
+            const action = targetButton.dataset.action;
+            const buttonText = targetButton.textContent.trim(); // Trim whitespace
+
+            if (targetButton.classList.contains('number') && buttonText !== '.') {
+                appendNumber(buttonText);
+            } else if (action === 'decimal') {
+                appendDecimal();
+            } else if (action === 'clear') {
+                clearCalculator();
+            } else if (action === 'sign') {
+                changeSign();
+            } else if (action === 'percent') {
+                applyPercent();
+            } else if (action === 'equals') {
+                compute();
+            } else if (targetButton.classList.contains('operator')) {
+                chooseOperation(action);
+            } else if (action === 'portfolio') { // Handle the new portfolio button
+                redirectToPortfolio();
+            }
+        });
+
+        // Event listener for Calculator app icon
+        calculatorIcon.addEventListener('click', () => {
+            homeScreen.classList.add('hidden');
+            calculatorApp.classList.add('active');
+            // Reset calculator state when opening the app
+            clearCalculator();
+        });
+
+        // Event listener for Home bar to return to home screen
+        homeBarElement.addEventListener('click', () => {
+            calculatorApp.classList.remove('active');
+            homeScreen.classList.remove('hidden');
+        });
+
+        // Add keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') {
+                appendNumber(e.key);
+            } else if (e.key === '.') {
+                appendDecimal();
+            } else if (e.key === '+' || (e.key === '=' && e.shiftKey)) { // Handle '+' and Shift+= for plus
+                chooseOperation('add');
+            } else if (e.key === '-') {
+                chooseOperation('subtract');
+            } else if (e.key === '*' || (e.key === '8' && e.shiftKey)) { // Handle '*' and Shift+8 for multiply
+                chooseOperation('multiply');
+            } else if (e.key === '/') {
+                chooseOperation('divide');
+            } else if (e.key === 'Enter' || e.key === '=') {
+                compute();
+            } else if (e.key === 'Escape') {
+                clearCalculator();
+            }
+            // Prevent default browser actions for calculator keys
+            if (['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '+', '-', '*', '/', 'Enter', '='].includes(e.key) ||
+                (e.key === '8' && e.shiftKey) || (e.key === '=' && e.shiftKey) || e.key === 'Escape') {
+                e.preventDefault();
+            }
+        });
+
+        // Initial display update
+        updateDisplay();
+    </script>
+</body>
+</html>
